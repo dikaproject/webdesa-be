@@ -7,61 +7,189 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum UserRole {
+  VISITOR
+  WARGA
+  ADMIN
+}
+
+enum LaporanStatus {
+  PENDING
+  PROSES
+  SELESAI
+  DITOLAK
+}
+
+enum LaporanKategori {
+  INFRASTRUKTUR
+  KESEHATAN
+  PENDIDIKAN
+  LINGKUNGAN
+  KEAMANAN
+  LAINNYA
+}
+
+enum TransactionStatus {
+  PENDING
+  PAID
+  CANCELLED
+}
+
 model User {
-  id        Int      @id @default(autoincrement())
+  id        String   @id @default(cuid())
   email     String   @unique
   password  String
   name      String
-  role      Role     @default(USER)
+  role      UserRole @default(VISITOR)
+  noTelp    String?
+  alamat    String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  profile   Profile?
+
+  laporan      Laporan[]
+  transactions Transaction[]
+  
+  @@map("users")
 }
 
-model Profile {
-  id        Int      @id @default(autoincrement())
-  bio       String?  @db.Text
-  avatar    String?
-  userId    Int      @unique
-  user      User     @relation(fields: [userId], references: [id])
+model ProfilDesa {
+  id          String   @id @default(cuid())
+  namaDesa    String
+  kecamatan   String
+  kabupaten   String
+  provinsi    String
+  kodePos     String?
+  luasWilayah Float?
+  visiMisi    String?  @db.Text
+  sejarah     String?  @db.Text
+  geografis   String?  @db.Text
+  struktur    String?  @db.Text
+  kontak      String?
+  email       String?
+  website     String?
+  foto        String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@map("profil_desa")
+}
+
+model Laporan {
+  id          String          @id @default(cuid())
+  judul       String
+  deskripsi   String          @db.Text
+  kategori    LaporanKategori
+  status      LaporanStatus   @default(PENDING)
+  lokasi      String?
+  foto        String?
+  tanggapan   String?         @db.Text
+  userId      String
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  user        User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@map("laporan")
+}
+
+model WisataDesa {
+  id          String   @id @default(cuid())
+  nama        String
+  deskripsi   String   @db.Text
+  lokasi      String
+  kategori    String?
+  harga       Int?
+  jamBuka     String?
+  jamTutup    String?
+  kontak      String?
+  foto        String?
+  rating      Float?   @default(0)
+  isAktif     Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  transactions Transaction[]
+  
+  @@map("wisata_desa")
+}
+
+model Transaction {
+  id               String            @id @default(cuid())
+  userId           String
+  wisataId         String
+  jumlahTiket      Int
+  totalHarga       Int
+  tanggalKunjungan DateTime
+  namaLengkap      String
+  noTelp           String
+  status           TransactionStatus @default(PENDING)
+  buktiPembayaran  String?
+  
+  orderId          String?           @unique
+  transactionId    String?
+  paymentType      String?
+  vaNumber         String?
+  bank             String?
+  pdfUrl           String?
+  expiryTime       DateTime?
+  
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+
+  user             User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  wisata           WisataDesa        @relation(fields: [wisataId], references: [id], onDelete: Cascade)
+
+  @@map("transactions")
+}
+
+model UMKM {
+  id          String   @id @default(cuid())
+  nama        String   @unique
+  pemilik     String
+  deskripsi   String   @db.Text
+  kategori    String
+  alamat      String
+  kontak      String?
+  produk      String?  @db.Text
+  harga       String?
+  foto        String?
+  jamBuka     String?
+  jamTutup    String?
+  isAktif     Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@map("umkm")
+}
+
+model ProgramPembangunan {
+  id          String   @id @default(cuid())
+  nama        String
+  deskripsi   String   @db.Text
+  kategori    String
+  anggaran    Int?
+  sumberDana  String?
+  timeline    String?
+  status      String   @default("PERENCANAAN")
+  progress    Int      @default(0)
+  foto        String?
+  penanggungJawab String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@map("program_pembangunan")
+}
+
+model Berita {
+  id        String   @id @default(cuid())
+  judul     String
+  konten    String   @db.Text
+  kategori  String?
+  foto      String?
+  author    String
+  isPublish Boolean  @default(false)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-}
-
-model Destination {
-  id          Int       @id @default(autoincrement())
-  name        String
-  description String    @db.Text
-  location    String
-  category    String
-  price       String
-  rating      Float     @default(0)
-  reviews     Review[]
-  images      Image[]
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-}
-
-model Review {
-  id            Int         @id @default(autoincrement())
-  rating        Float
-  comment       String      @db.Text
-  destinationId Int
-  destination   Destination @relation(fields: [destinationId], references: [id])
-  createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @updatedAt
-}
-
-model Image {
-  id            Int         @id @default(autoincrement())
-  url           String
-  destinationId Int
-  destination   Destination @relation(fields: [destinationId], references: [id])
-  createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @updatedAt
-}
-
-enum Role {
-  USER
-  ADMIN
+  
+  @@map("berita")
 }

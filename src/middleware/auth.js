@@ -1,32 +1,47 @@
-const { verifyToken } = require('../utils/jwt');
+const jwt = require('jsonwebtoken');
+const prisma = require('../config/database');
 
 const auth = async (req, res, next) => {
   try {
-    // Get authorization header
-    const authHeader = req.headers['authorization'];
+    const token = req.header('Authorization')?.replace('Bearer ', '');
     
-    // Check if auth header exists and starts with 'Bearer '
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return res.status(401).json({ message: 'No token provided' });
+    if (!token) {
+      return res.status(401).json({ message: 'Access denied. No token provided.' });
     }
 
-    // Get token from header
-    const token = authHeader.split(' ')[1];
-    
-    // Verify token
-    const decoded = verifyToken(token);
-    req.user = decoded;
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const user = await prisma.user.findUnique({
+      where: { id: decoded.id },
+      select: { id: true, email: true, name: true, role: true }
+    });
+
+    if (!user) {
+      return res.status(401).json({ message: 'Invalid token.' });
+    }
+
+    req.user = user;
     next();
   } catch (error) {
-    res.status(401).json({ message: 'Invalid token' });
+    res.status(401).json({ message: 'Invalid token.' });
   }
 };
 
-const adminOnly = (req, res, next) => {
-  if (req.user.role !== 'ADMIN') {
-    return res.status(403).json({ message: 'Admin access required' });
+const adminOnly = async (req, res, next) => {
+  try {
+    // Jalankan auth middleware dulu
+    await auth(req, res, () => {
+      // Cek apakah user adalah admin
+      if (req.user.role !== 'ADMIN') {
+        return res.status(403).json({ 
+          success: false,
+          message: 'Access denied. Admin only.' 
+        });
+      }
+      next();
+    });
+  } catch (error) {
+    res.status(401).json({ message: 'Authentication failed.' });
   }
-  next();
 };
 
 module.exports = { auth, adminOnly };
