@@ -6,6 +6,7 @@ const getAllUmkm = async (req, res) => {
         const umkm = await prisma.UMKM.findMany({
             select : {
                 id: true,
+                slug: true,
                 nama: true,
                 pemilik: true,
                 deskripsi: true,
@@ -39,6 +40,44 @@ const getUmkmById = async (req, res) => {
             where: { id },
             select: {
                 id: true,
+                slug: true,
+                nama: true,
+                pemilik: true,
+                deskripsi: true,
+                kategori: true,
+                alamat: true,
+                kontak: true,
+                produk: true,
+                harga: true,
+                foto: true,
+                jamBuka: true,
+                jamTutup: true,
+                isAktif: true,
+                createdAt: true,
+                updatedAt: true
+            }
+        });
+        if (!umkm) {
+            return res.status(404).json({ success: false, message: 'UMKM tidak ditemukan' });
+        }
+        res.json({ success: true, data: umkm, message: 'Berhasil mengambil data UMKM' });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: 'Terjadi kesalahan saat mengambil data UMKM',
+            error: error.message
+        });
+    }
+}
+
+const getUmkmBySlug = async (req, res) => {
+    try {
+        const { slug } = req.params 
+        const umkm = await prisma.UMKM.findUnique({
+            where: { slug },
+            select: {
+                id: true,
+                slug: true,
                 nama: true,
                 pemilik: true,
                 deskripsi: true,
@@ -70,15 +109,16 @@ const getUmkmById = async (req, res) => {
 
 const createUmkm = async (req, res) => {
     try {
-        const { nama, pemilik, deskripsi, kategori, alamat, kontak, produk, harga, foto, jamBuka, jamTutup, isAktif } = req.body;
-        const existingUmkm = await prisma.UMKM.findUnique({ where: { nama } });
+        const { slug, nama, pemilik, deskripsi, kategori, alamat, kontak, produk, harga, foto, jamBuka, jamTutup, isAktif } = req.body;
+        const existingUmkm = await prisma.UMKM.findUnique({ where: { slug } });
         if (existingUmkm) {
-            return res.status(400).json({ success: false, message: "Nama Usaha sudah di daftarkan"});
+            return res.status(400).json({ success: false, message: "Slug UMKM sudah digunakan"});
         }
         const umkm = await prisma.UMKM.create({
-            data: { nama, pemilik, deskripsi, kategori, alamat, kontak, produk, harga, foto: req.file ? `/uploads/umkm/${req.file.filename}` : null, jamBuka, jamTutup, isAktif },
+            data: { slug, nama, pemilik, deskripsi, kategori, alamat, kontak, produk, harga, foto: req.file ? `/uploads/umkm/${req.file.filename}` : null, jamBuka, jamTutup, isAktif },
             select: {
                 id: true,
+                slug: true,
                 nama: true,
                 pemilik: true,
                 deskripsi: true,
@@ -102,7 +142,7 @@ const createUmkm = async (req, res) => {
 const updateUmkm = async(req, res) => {
     try {
         const { id } = req.params;
-        const { nama, pemilik, deskripsi, kategori, alamat, kontak, produk, harga, foto, jamBuka, jamTutup, isAktif } = req.body;
+        const { slug, nama, pemilik, deskripsi, kategori, alamat, kontak, produk, harga, foto, jamBuka, jamTutup, isAktif } = req.body;
         const existingUmkm = await prisma.UMKM.findUnique({ where: { id } });
 
         if (!existingUmkm) {
@@ -110,9 +150,10 @@ const updateUmkm = async(req, res) => {
         }
         const umkm = await prisma.UMKM.update({
             where: { id },
-            data: { nama, pemilik, deskripsi, kategori, alamat, kontak, produk, harga, foto: req.file ? `/uploads/umkm/${req.file.filename}` : null, jamBuka, jamTutup, isAktif },
+            data: { slug, nama, pemilik, deskripsi, kategori, alamat, kontak, produk, harga, foto: req.file ? `/uploads/umkm/${req.file.filename}` : null, jamBuka, jamTutup, isAktif },
             select: {
                 id: true,
+                slug: true,
                 nama: true,
                 pemilik: true,
                 deskripsi: true,
@@ -158,6 +199,7 @@ const deleteUmkm = async (req, res) => {
 module.exports = {
     getAllUmkm,
     getUmkmById,
+    getUmkmBySlug,
     createUmkm,
     updateUmkm,
     deleteUmkm

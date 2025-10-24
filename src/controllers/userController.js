@@ -50,7 +50,17 @@ const updateUser = async (req, res) => {
 const getAllUsers = async (req, res) => {
     try {
         const users = await prisma.user.findMany({
-            select: { id: true, email: true, name: true, role: true }
+            select: { 
+                id: true, 
+                email: true, 
+                name: true, 
+                role: true,
+                noTelp: true,
+                alamat: true,
+                createdAt: true,
+                updatedAt: true
+            },
+            orderBy: { createdAt: 'desc' }
         });
         res.json({ success: true, data: users });
     } catch (error) {

@@ -62,21 +62,27 @@ const validateProgramPembangunan = [
   }
 ];
 
-const validateLaporan = [
-  body('judul').notEmpty().withMessage('Judul Laporan required'),
-  body('deskripsi').notEmpty().withMessage('Deskripsi Laporan required'),
-  body('kategori').notEmpty().withMessage('Kategori required'),
-  body('lokasi').notEmpty().withMessage('Lokasi required'),
-  body('foto').notEmpty().withMessage('Foto required'),
-  (req, res, next) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      const messages = errors.array().map(e => e.msg);
-      return res.status(400).json({ message: messages });
-    }
-    next();
+const validateLaporan = (req, res, next) => {
+  const { judul, deskripsi, kategori } = req.body;
+  
+  // ✅ REMOVED foto validation - foto is optional
+  if (!judul || !deskripsi || !kategori) {
+    return res.status(400).json({
+      success: false,
+      message: 'Judul, deskripsi, dan kategori wajib diisi'
+    });
   }
-];
 
+  // Validate kategori
+  const validKategori = ['INFRASTRUKTUR', 'KESEHATAN', 'PENDIDIKAN', 'LINGKUNGAN', 'KEAMANAN', 'LAINNYA'];
+  if (!validKategori.includes(kategori)) {
+    return res.status(400).json({
+      success: false,
+      message: `Kategori tidak valid. Pilih salah satu: ${validKategori.join(', ')}`
+    });
+  }
+
+  next();
+};
 
 module.exports = { validateRegister, validateUmkm, validateWisata, validateProgramPembangunan, validateLaporan };

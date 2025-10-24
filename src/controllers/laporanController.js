@@ -109,19 +109,36 @@ const getLaporanByIdUser = async (req, res) => {
 
 const createLaporan = async (req, res) => {
   try {
-    const { judul, deskripsi, kategori, lokasi, foto } = req.body;
-    const userId = req.user.id;
+    console.log('=== CREATE LAPORAN DEBUG ===');
+    console.log('Body:', req.body);
+    console.log('File:', req.file);
+    console.log('User:', req.user);
+    
+    const { judul, deskripsi, kategori, lokasi } = req.body;
+    const userId = req.user?.id; // ✅ Optional - bisa null untuk guest
+    const foto = req.file ? `/uploads/laporan/${req.file.filename}` : null;
+
+    console.log('Processed data:', { judul, deskripsi, kategori, lokasi, foto, userId });
+
+    // ✅ Validate kategori sesuai enum
+    const validKategori = ['INFRASTRUKTUR', 'KESEHATAN', 'PENDIDIKAN', 'LINGKUNGAN', 'KEAMANAN', 'LAINNYA'];
+    if (!validKategori.includes(kategori)) {
+      return res.status(400).json({
+        success: false,
+        message: `Kategori tidak valid. Pilih salah satu: ${validKategori.join(', ')}`
+      });
+    }
 
     const laporan = await prisma.laporan.create({
       data: {
         judul,
         deskripsi,
         kategori,
-        lokasi,
+        lokasi: lokasi || null,
         foto,
-        userId
+        ...(userId && { userId }) // ✅ Only include userId if exists
       },
-      include: {
+      include: userId ? {
         user: {
           select: {
             id: true,
@@ -129,8 +146,10 @@ const createLaporan = async (req, res) => {
             email: true
           }
         }
-      }
+      } : undefined
     });
+
+    console.log('Created laporan:', laporan);
 
     res.status(201).json({
       success: true,
@@ -138,10 +157,11 @@ const createLaporan = async (req, res) => {
       data: laporan
     });
   } catch (error) {
-    console.error(error);
+    console.error('Create laporan error:', error);
     res.status(500).json({ 
       success: false,
-      message: 'Internal server error' 
+      message: 'Internal server error',
+      error: error.message 
     });
   }
 };
@@ -206,7 +226,9 @@ const updateLaporan = async (req, res) => {
 const updateStatusLaporan = async (req, res) => {
   try {
     const { id } = req.params;
-    const { status, tanggapan } = req.body;
+    const { status, tanggapan } = req.body; // Destructure langsung dari body
+
+    console.log('Received data:', { id, status, tanggapan }); // Debug log
 
     const existingLaporan = await prisma.laporan.findUnique({
       where: { id }
@@ -219,12 +241,14 @@ const updateStatusLaporan = async (req, res) => {
       });
     }
 
+    // Update hanya field yang ada
+    const updateData = {};
+    if (status) updateData.status = status;
+    if (tanggapan !== undefined) updateData.tanggapan = tanggapan;
+
     const laporan = await prisma.laporan.update({
       where: { id },
-      data: {
-        status,
-        tanggapan
-      },
+      data: updateData,
       include: {
         user: {
           select: {
@@ -242,10 +266,11 @@ const updateStatusLaporan = async (req, res) => {
       data: laporan
     });
   } catch (error) {
-    console.error(error);
+    console.error('Update status error:', error);
     res.status(500).json({ 
       success: false,
-      message: 'Internal server error' 
+      message: 'Internal server error',
+      error: error.message
     });
   }
 };
