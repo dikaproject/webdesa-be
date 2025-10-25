@@ -104,8 +104,8 @@ model WisataDesa {
   jamTutup    String?
   kontak      String?
   foto        String?
-  gambar      Json?    // Array of image URLs
-  fasilitas   Json?    // Array of facilities {nama, icon}
+  gambar      Json?   
+  fasilitas   Json?    
   latitude    Float?
   longitude   Float?
   isAktif     Boolean  @default(true)
@@ -165,6 +165,8 @@ model UMKM {
   foto        String?
   jamBuka     String?
   jamTutup    String?
+  latitude    Float?
+  longitude   Float?
   isAktif     Boolean  @default(true)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt

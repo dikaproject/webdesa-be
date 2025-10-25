@@ -13,6 +13,7 @@ const programRoutes = require('./routes/pembangunan')
 const laporanRoutes = require('./routes/laporan');
 const transactionRoutes = require('./routes/transactionRoutes');
 const dashboardRoutes = require('./routes/dashboard');
+const chatbotRoutes = require('./routes/chatbot');
 
 const app = express();
 const port = process.env.PORT || 5000;
@@ -26,6 +27,7 @@ app.use(express.json());
 
 // Static files middleware - perbaiki path
 app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')));
+app.use('/api/uploads', express.static(path.join(__dirname, '..', 'uploads')));
 
 // Routes
 app.use('/api/auth', authRoutes);
@@ -37,6 +39,7 @@ app.use('/api/program', programRoutes);
 app.use('/api/laporan', laporanRoutes);
 app.use('/api/transactions', transactionRoutes);
 app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/chatbot', chatbotRoutes);
 
 // Error Handler
 app.use(errorHandler);

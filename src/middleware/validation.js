@@ -31,36 +31,65 @@ const validateUmkm = [
   }
 ];
 
-const validateWisata = [
-  body('nama').notEmpty().withMessage('Nama Wisata required'),
-  body('deskripsi').notEmpty().withMessage('Deskripsi required'),
-  body('lokasi').notEmpty().withMessage('Lokasi required'),
-  body('isAktif').optional().toBoolean().isBoolean().withMessage('isAktif harus boolean'),
-  (req, res, next) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      const messages = errors.array().map(e => e.msg);
-      return res.status(400).json({ message: messages });
-    }
-    next();
+const validateWisata = (req, res, next) => {
+  const { nama, deskripsi, lokasi } = req.body;
+  
+  if (!nama || nama.trim() === '') {
+    return res.status(400).json({
+      success: false,
+      message: 'Nama Wisata required'
+    });
   }
-];
 
-const validateProgramPembangunan = [
-  body('nama').notEmpty().withMessage('Nama Program Pembangunan required'),
-  body('deskripsi').notEmpty().withMessage('Deskripsi required'),
-  body('kategori').notEmpty().withMessage('Kategori required'),
-  body('status').notEmpty().withMessage('Status required'),
-  body('progress').notEmpty().withMessage('Progres required'),
-  (req, res, next) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      const messages = errors.array().map(e => e.msg);
-      return res.status(400).json({ message: messages });
-    }
-    next();
+  if (!deskripsi || deskripsi.trim() === '') {
+    return res.status(400).json({
+      success: false,
+      message: 'Deskripsi required'
+    });
   }
-];
+
+  if (!lokasi || lokasi.trim() === '') {
+    return res.status(400).json({
+      success: false,
+      message: 'Lokasi required'
+    });
+  }
+
+  next();
+};
+const validateProgramPembangunan = (req, res, next) => {
+  const { nama, deskripsi, kategori, status } = req.body;
+  
+  if (!nama || nama.trim() === '') {
+    return res.status(400).json({
+      success: false,
+      message: 'Nama Program required'
+    });
+  }
+
+  if (!deskripsi || deskripsi.trim() === '') {
+    return res.status(400).json({
+      success: false,
+      message: 'Deskripsi required'
+    });
+  }
+
+  if (!kategori || kategori.trim() === '') {
+    return res.status(400).json({
+      success: false,
+      message: 'Kategori required'
+    });
+  }
+
+  if (!status || status.trim() === '') {
+    return res.status(400).json({
+      success: false,
+      message: 'Status required'
+    });
+  }
+
+  next();
+};
 
 const validateLaporan = (req, res, next) => {
   const { judul, deskripsi, kategori } = req.body;

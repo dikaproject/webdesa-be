@@ -1,5 +1,7 @@
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
+const path = require('path');
+const { validateLaporanWithAI, heuristicValidation } = require('../services/laporanValidationService');
 
 const getAllLaporan = async (req, res) => {
   try {
@@ -314,6 +316,72 @@ const deleteLaporan = async (req, res) => {
   }
 };
 
+/**
+ * Validate Laporan Before Submit - AI Vision Analysis
+ * Endpoint khusus untuk validasi laporan sebelum dikirim
+ */
+const validateLaporanBeforeSubmit = async (req, res) => {
+  try {
+    console.log('=== VALIDATE LAPORAN DEBUG ===');
+    console.log('Body:', req.body);
+    console.log('File:', req.file);
+    
+    const { judul, deskripsi, kategori } = req.body;
+    
+    // Validate required fields
+    if (!judul || !deskripsi || !kategori || !req.file) {
+      return res.status(400).json({
+        success: false,
+        message: 'Semua field wajib diisi (judul, deskripsi, kategori, foto)'
+      });
+    }
+
+    // Validate kategori
+    const validKategori = ['INFRASTRUKTUR', 'KESEHATAN', 'PENDIDIKAN', 'LINGKUNGAN', 'KEAMANAN', 'LAINNYA'];
+    if (!validKategori.includes(kategori)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Kategori tidak valid'
+      });
+    }
+
+    // Get photo path
+    const photoPath = path.join(__dirname, '..', '..', 'uploads', 'laporan', req.file.filename);
+    
+    console.log('Photo path:', photoPath);
+    console.log('Validating with AI...');
+
+    // Call AI validation service
+    const validation = await validateLaporanWithAI(kategori, judul, deskripsi, photoPath);
+    
+    console.log('Validation result:', validation);
+
+    // Return validation result
+    res.status(200).json({
+      success: true,
+      validation: {
+        valid: validation.valid,
+        confidence: validation.confidence,
+        reason: validation.reason,
+        suggestions: validation.suggestions || '',
+        skipped: validation.skipped || false,
+        heuristic: validation.heuristic || false
+      },
+      message: validation.valid 
+        ? 'Laporan valid dan dapat dikirim' 
+        : 'Laporan tidak valid, mohon perbaiki'
+    });
+
+  } catch (error) {
+    console.error('Validation error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Terjadi kesalahan saat validasi',
+      error: error.message
+    });
+  }
+};
+
 module.exports = { 
   getAllLaporan, 
   getLaporanById, 
@@ -321,5 +389,6 @@ module.exports = {
   updateLaporan, 
   updateStatusLaporan,
   deleteLaporan,
-  getLaporanByIdUser
+  getLaporanByIdUser,
+  validateLaporanBeforeSubmit
 };
