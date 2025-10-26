@@ -7,9 +7,9 @@ const upload = require('../config/multer');
 router.get('/getall', getAllWisata);
 router.get('/get/:id', getWisataById);
 router.get('/slug/:slug', getWisataBySlug);
-router.post('/recommend', getAIRecommendation); // AI recommendation endpoint
-router.post('/create', adminOnly, upload.wisata.single('foto'), validateWisata, createWisata);
-router.put('/update/:id', adminOnly, upload.wisata.single('foto'), validateWisata, updateWisata);
+router.post('/recommend', getAIRecommendation);
+router.post('/create', adminOnly, upload.wisata.array('foto', 5), validateWisata, createWisata);
+router.put('/update/:id', adminOnly, upload.wisata.array('foto', 5), validateWisata, updateWisata);
 router.delete('/delete/:id', adminOnly, deleteWisata);
 
 module.exports = router;

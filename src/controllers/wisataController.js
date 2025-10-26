@@ -122,12 +122,8 @@ const getWisataBySlug = async (req, res) => {
 
 const createWisata = async (req, res) => {
     try {
-        console.log('📝 Create Wisata - Request Body:', req.body);
-        console.log('📷 Create Wisata - File:', req.file);
-
-        const { nama, deskripsi, lokasi, kategori, harga, jamBuka, jamTutup, kontak, gambar, fasilitas, latitude, longitude, isAktif } = req.body;
+        const { nama, deskripsi, lokasi, kategori, harga, jamBuka, jamTutup, kontak, fasilitas, latitude, longitude, isAktif } = req.body;
         
-        // ✅ Generate slug
         const slug = nama
             .toLowerCase()
             .replace(/\s+/g, '-')
@@ -135,43 +131,26 @@ const createWisata = async (req, res) => {
             .replace(/\-\-+/g, '-')
             .trim();
         
-        // ✅ Parse numeric values with proper validation
         const hargaInt = harga && harga.trim() !== '' ? parseInt(harga, 10) : null;
         const lat = latitude && latitude.trim() !== '' ? parseFloat(latitude) : null;
         const lng = longitude && longitude.trim() !== '' ? parseFloat(longitude) : null;
         
-        // ✅ Parse JSON arrays safely
-        let gambarArray = [];
         let fasilitasArray = [];
-        
-        try {
-            if (gambar && gambar.trim() !== '') {
-                gambarArray = typeof gambar === 'string' ? JSON.parse(gambar) : gambar;
-            }
-        } catch (e) {
-            console.warn('Failed to parse gambar:', e.message);
-        }
         
         try {
             if (fasilitas && fasilitas.trim() !== '') {
                 fasilitasArray = typeof fasilitas === 'string' ? JSON.parse(fasilitas) : fasilitas;
             }
         } catch (e) {
-            console.warn('Failed to parse fasilitas:', e.message);
+            fasilitasArray = [];
         }
 
-        // ✅ Parse isAktif boolean
         const isAktifBool = isAktif === 'true' || isAktif === true;
         
-        console.log('📊 Parsed Data:', {
-            slug,
-            nama,
-            hargaInt,
-            lat,
-            lng,
-            isAktifBool,
-            hasFile: !!req.file
-        });
+        const foto = req.files && req.files.length > 0 ? `/uploads/wisata/${req.files[0].filename}` : null;
+        const gambarArray = req.files && req.files.length > 1 
+            ? req.files.slice(1).map(f => `/uploads/wisata/${f.filename}`)
+            : [];
 
         const wisata = await prisma.wisataDesa.create({
             data: { 
@@ -184,7 +163,7 @@ const createWisata = async (req, res) => {
                 jamBuka: jamBuka || null, 
                 jamTutup: jamTutup || null, 
                 kontak: kontak || null, 
-                foto: req.file ? `/uploads/wisata/${req.file.filename}` : null,
+                foto,
                 gambar: gambarArray,
                 fasilitas: fasilitasArray,
                 latitude: lat,
@@ -192,8 +171,6 @@ const createWisata = async (req, res) => {
                 isAktif: isAktifBool
             }
         });
-
-        console.log('✅ Wisata created successfully:', wisata.id);
         
         res.status(201).json({ 
             success: true, 
@@ -201,7 +178,6 @@ const createWisata = async (req, res) => {
             message: 'Berhasil menambahkan data Wisata Desa' 
         });
     } catch (error) {
-        console.error('❌ Error creating wisata:', error);
         res.status(400).json({
             success: false,
             message: 'Terjadi kesalahan saat menambahkan data Wisata Desa',
@@ -212,18 +188,13 @@ const createWisata = async (req, res) => {
 
 const updateWisata = async (req, res) => {
     try {
-        console.log('📝 Update Wisata - Request Body:', req.body);
-        console.log('📷 Update Wisata - File:', req.file);
-
         const { id } = req.params;
         const { nama, deskripsi, lokasi, kategori, harga, jamBuka, jamTutup, kontak, gambar, fasilitas, latitude, longitude, isAktif } = req.body;
         
-        // ✅ Parse numeric values with proper validation
         const hargaInt = harga && harga.trim() !== '' ? parseInt(harga, 10) : undefined;
         const lat = latitude && latitude.trim() !== '' ? parseFloat(latitude) : undefined;
         const lng = longitude && longitude.trim() !== '' ? parseFloat(longitude) : undefined;
         
-        // ✅ Parse JSON arrays safely
         let gambarArray;
         let fasilitasArray;
         
@@ -232,7 +203,7 @@ const updateWisata = async (req, res) => {
                 gambarArray = typeof gambar === 'string' ? JSON.parse(gambar) : gambar;
             }
         } catch (e) {
-            console.warn('Failed to parse gambar:', e.message);
+            gambarArray = undefined;
         }
         
         try {
@@ -240,13 +211,11 @@ const updateWisata = async (req, res) => {
                 fasilitasArray = typeof fasilitas === 'string' ? JSON.parse(fasilitas) : fasilitas;
             }
         } catch (e) {
-            console.warn('Failed to parse fasilitas:', e.message);
+            fasilitasArray = undefined;
         }
 
-        // ✅ Parse isAktif boolean
         const isAktifBool = isAktif === 'true' || isAktif === true;
 
-        // ✅ Build update data object (only include defined values)
         const updateData = {
             nama, 
             deskripsi, 
@@ -255,25 +224,29 @@ const updateWisata = async (req, res) => {
             isAktif: isAktifBool
         };
 
-        // Add optional fields only if they have values
         if (hargaInt !== undefined) updateData.harga = hargaInt;
         if (jamBuka !== undefined) updateData.jamBuka = jamBuka || null;
         if (jamTutup !== undefined) updateData.jamTutup = jamTutup || null;
         if (kontak !== undefined) updateData.kontak = kontak || null;
-        if (req.file) updateData.foto = `/uploads/wisata/${req.file.filename}`;
-        if (gambarArray !== undefined) updateData.gambar = gambarArray;
+        
+        if (req.files && req.files.length > 0) {
+            updateData.foto = `/uploads/wisata/${req.files[0].filename}`;
+            if (req.files.length > 1) {
+                const newGambar = req.files.slice(1).map(f => `/uploads/wisata/${f.filename}`);
+                updateData.gambar = gambarArray ? [...gambarArray, ...newGambar] : newGambar;
+            }
+        } else if (gambarArray !== undefined) {
+            updateData.gambar = gambarArray;
+        }
+        
         if (fasilitasArray !== undefined) updateData.fasilitas = fasilitasArray;
         if (lat !== undefined) updateData.latitude = lat;
         if (lng !== undefined) updateData.longitude = lng;
-
-        console.log('📊 Update Data:', updateData);
         
         const wisata = await prisma.wisataDesa.update({
             where: { id },
             data: updateData
         });
-
-        console.log('✅ Wisata updated successfully:', wisata.id);
         
         res.json({ 
             success: true, 
@@ -281,7 +254,6 @@ const updateWisata = async (req, res) => {
             message: 'Berhasil mengupdate data Wisata Desa' 
         });
     } catch (error) {
-        console.error('❌ Error updating wisata:', error);
         res.status(400).json({
             success: false,
             message: 'Terjadi kesalahan saat mengupdate data Wisata Desa',
